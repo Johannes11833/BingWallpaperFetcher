@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "bingwallpaper"
+version = "0.1.0"
+description = "A python script to automatically fetch and apply the daily Bing wallpaper on Linux, Mac or Windows."
+authors = [
+    "Johannes Gundlach <24914225+Johannes11833@users.noreply.github.com>",
+]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+requests = "^2.32.3"
+rich = "^13.9.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
