@@ -6,3 +6,4 @@ logging.basicConfig(format=FORMAT, datefmt="[%X]", handlers=[RichHandler()])
 
 
 log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)

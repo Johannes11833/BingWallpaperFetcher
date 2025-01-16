@@ -9,10 +9,15 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<3.14"
 requests = "^2.32.3"
 rich = "^13.9.4"
 
+[tool.poetry.group.dev.dependencies]
+pyinstaller = "^6.11.1"
+
+[tool.poetry.scripts]
+set-wallpaper = "bingwallpaper.wallpaper_fetcher:cli"
 
 [build-system]
 requires = ["poetry-core"]
