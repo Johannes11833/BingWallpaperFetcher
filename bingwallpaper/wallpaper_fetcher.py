@@ -7,8 +7,13 @@ from typing import Dict, List, Optional
 import requests
 
 from bingwallpaper.wallpaper import set_wallpaper
-from bingwallpaper.autostart import COMMAND, get_autostart_enabled, set_auto_start
-from bingwallpaper.autostart import COMMAND
+from bingwallpaper.autostart import (
+    EXECUTABLE_PATH,
+    get_autostart_enabled,
+    is_frozen,
+    set_auto_start,
+)
+from bingwallpaper.autostart import EXECUTABLE_PATH
 from bingwallpaper.logger import log
 
 
@@ -213,27 +218,29 @@ def cli():
         default=None,
     )
 
-    parser.add_argument(
-        "--set-auto",
-        help="Enable autostart.",
-        action="store_true",
-        default=False,
-    )
+    if is_frozen():
+        # only add autostart options if this is the frozen executable
+        parser.add_argument(
+            "--enable-auto",
+            help="Enable autostart.",
+            action="store_true",
+            default=False,
+        )
 
-    parser.add_argument(
-        "--disable-auto",
-        help="Remove autostart.",
-        action="store_true",
-        default=False,
-    )
+        parser.add_argument(
+            "--disable-auto",
+            help="Remove autostart.",
+            action="store_true",
+            default=False,
+        )
 
     args = parser.parse_args()
 
     if args.debug:
         log.setLevel(logging.DEBUG)
 
-    if args.set_auto or args.disable_auto:
-        set_auto_start(enable=args.set_auto)
+    if args.enable_auto or args.disable_auto:
+        set_auto_start(enable=args.enable_auto)
         print("Autostart " + ("ON" if get_autostart_enabled() else "OFF"))
         return
 
@@ -256,4 +263,3 @@ def cli():
 
 if __name__ == "__main__":
     cli()
-    print(COMMAND)

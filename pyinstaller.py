@@ -8,7 +8,14 @@ from bingwallpaper import APP_NAME, VERSION
 def install():
 
     name = APP_NAME.replace(" ", "-").lower()
-    subprocess.run(args=["pyinstaller", "./bingwallpaper/bing.py", f'--name={name}'])
+    subprocess.run(
+        args=[
+            "pyinstaller",
+            "./bingwallpaper/wallpaper_fetcher.py",
+            f"--name={name}",
+            "--noconfirm",
+        ]
+    )
 
     # zip the pyinstaller output as an artifact
     os_name = platform.system().replace("Darwin", "Mac").lower()

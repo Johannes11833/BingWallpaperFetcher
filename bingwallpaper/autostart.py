@@ -18,7 +18,7 @@ def get_os() -> OperatingSystem:
 
 
 REG_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
-COMMAND = f'"{sys.executable}" -m bingwallpaper.wallpaper_fetcher'
+EXECUTABLE_PATH = f"{sys.executable}"
 REG_ITEM_NAME = APP_NAME.replace(" ", "")
 OS = get_os()
 
@@ -29,6 +29,13 @@ LINUX_LAUNCH_FILE_PATH = Path(
 )
 
 
+def is_frozen() -> bool:
+    if getattr(sys, "frozen", False):
+        # we are running in a bundle
+        return True
+    return False
+
+
 def autostart_supported() -> bool:
     return OS in [OperatingSystem.WINDOWS, OperatingSystem.LINUX]
 
@@ -37,7 +44,7 @@ def set_auto_start(enable: bool) -> bool:
     result = False
     if OS == OperatingSystem.WINDOWS:
         if enable:
-            result = __set_reg_item(REG_PATH, REG_ITEM_NAME, f"&{COMMAND}")
+            result = __set_reg_item(REG_PATH, REG_ITEM_NAME, f'"{EXECUTABLE_PATH}"')
             log.debug(f"set_reg_item {REG_PATH}/{REG_ITEM_NAME}: {result}")
         else:
             result = __delete_reg_item(REG_PATH, REG_ITEM_NAME)
@@ -45,7 +52,7 @@ def set_auto_start(enable: bool) -> bool:
     elif OS == OperatingSystem.LINUX:
         if LINUX_AUTOSTART_DIR.is_dir():
             if enable:
-                desktop = f"[Desktop Entry]\nType=Application\nName={APP_NAME}\nExec={COMMAND}"
+                desktop = f"[Desktop Entry]\nType=Application\nName={APP_NAME}\nExec={EXECUTABLE_PATH}"
                 LINUX_LAUNCH_FILE_PATH.write_text(desktop)
                 result = True
             else:
@@ -66,8 +73,8 @@ def get_autostart_enabled() -> bool:
         return (
             # a value is set
             result != None
-            # # the file exists (it might have been moved by the user)
-            # and Path(result.replace('"--minimized', "").replace('"', "")).is_file()
+            # the file exists (it might have been moved by the user)
+            and Path(result.replace('"', "")).is_file()
         )
     elif OS == OperatingSystem.LINUX:
         return LINUX_LAUNCH_FILE_PATH.is_file()

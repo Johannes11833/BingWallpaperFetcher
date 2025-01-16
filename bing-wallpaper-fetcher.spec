@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['bingwallpaper\\bing.py'],
+    ['bingwallpaper\\wallpaper_fetcher.py'],
     pathex=[],
     binaries=[],
     datas=[],
