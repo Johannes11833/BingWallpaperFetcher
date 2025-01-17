@@ -1,0 +1,80 @@
+name: Build Executables
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  APP_NAME: controller-companion
+  VERSION:  ${{ github.ref_name }}
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['windows-latest', 'ubuntu-latest', 'macos-latest']
+
+
+    steps:
+    - name: Set poetry version name (remove v prefix)
+      run: |
+        echo "VERSION_POETRY=${VERSION#v}" >> $GITHUB_ENV
+      shell: bash
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10.x
+
+    - name: Install Inno Setup
+      if: matrix.os == 'windows-latest'
+      run: choco install innosetup
+
+    - name: Install package & update version
+      run: |
+        pip install poetry
+        poetry version "${{env.VERSION_POETRY}}"
+        poetry install --with dev
+
+    - name: Build executable
+      run: |
+        poetry run python pyinstaller.py
+        ls -R ./dist/
+
+    - name: Build Installer (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' inno_setup.iss /DAppVersion=${{env.VERSION_POETRY}}
+        ls ./dist/
+
+    - name: Build Deb File (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: ./create_deb.sh dist/controller-companion
+
+    - name: Create Artifact (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "dist/*.zip, dist/*.exe"
+        allowUpdates: true
+
+    - name: Create Artifact (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "dist/*.zip, dist/*.deb"
+        allowUpdates: true
+
+    - name: Create Artifact (macOS)
+      if: matrix.os == 'macos-latest'
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "dist/*.zip"
+        allowUpdates: true

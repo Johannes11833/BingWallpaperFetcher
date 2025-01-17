@@ -14,6 +14,7 @@ def install():
             "./bingwallpaper/wallpaper_fetcher.py",
             f"--name={name}",
             "--noconfirm",
+            "--icon=res/app.png",
         ]
     )
 

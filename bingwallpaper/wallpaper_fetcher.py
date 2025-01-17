@@ -6,14 +6,13 @@ from pathlib import Path
 from typing import Dict, List, Optional
 import requests
 
-from bingwallpaper.wallpaper import set_wallpaper
+from bingwallpaper import VERSION
+from bingwallpaper.set_wallpaper import set_wallpaper
 from bingwallpaper.autostart import (
-    EXECUTABLE_PATH,
+    autostart_supported,
     get_autostart_enabled,
-    is_frozen,
     set_auto_start,
 )
-from bingwallpaper.autostart import EXECUTABLE_PATH
 from bingwallpaper.logger import log
 
 
@@ -160,7 +159,7 @@ def set_latest_wallpaper(
             resolution=resolution,
         )
 
-    if path:
+    if walls and walls[0].path:
         set_wallpaper(walls[0].path)
         log.info(f"Successfully updated the wallpaper to {walls[0].pretty_print()}")
 
@@ -168,7 +167,7 @@ def set_latest_wallpaper(
 def cli():
     parser = argparse.ArgumentParser(
         prog="BingWallpaper Fetcher",
-        description="This neat little tool fetches the Bing wallpaper of the day and automatically applies it (Windows/Mac/Linux).",
+        description="This little tool fetches the Bing wallpaper of the day and automatically applies it (Windows/Mac/Linux).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -204,21 +203,13 @@ def cli():
     )
 
     parser.add_argument(
-        "-d",
-        "--debug",
-        help="Set log level to debug.",
-        action="store_true",
-        default=False,
-    )
-
-    parser.add_argument(
         "-o",
         "--output",
         help="Output directory where the wallpapers should be saved.",
         default=None,
     )
 
-    if is_frozen():
+    if autostart_supported():
         # only add autostart options if this is the frozen executable
         parser.add_argument(
             "--enable-auto",
@@ -234,15 +225,36 @@ def cli():
             default=False,
         )
 
+    parser.add_argument(
+        "-v",
+        "--version",
+        help="Prints the installed version number.",
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
+        "-d",
+        "--debug",
+        help="Set log level to debug.",
+        action="store_true",
+        default=False,
+    )
+
     args = parser.parse_args()
+
+    if args.version:
+        print(VERSION)
+        return
 
     if args.debug:
         log.setLevel(logging.DEBUG)
 
-    if args.enable_auto or args.disable_auto:
-        set_auto_start(enable=args.enable_auto)
-        print("Autostart " + ("ON" if get_autostart_enabled() else "OFF"))
-        return
+    if autostart_supported():
+        if args.enable_auto or args.disable_auto:
+            set_auto_start(enable=args.enable_auto)
+            print("Autostart " + ("ON" if get_autostart_enabled() else "OFF"))
+            return
 
     if args.output:
         global data_dir

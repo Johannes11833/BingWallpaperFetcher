@@ -17,12 +17,14 @@ def get_os() -> OperatingSystem:
     return OperatingSystem(platform.system())
 
 
+OS = get_os()
+
+# WINDOWS
 REG_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
 EXECUTABLE_PATH = f"{sys.executable}"
 REG_ITEM_NAME = APP_NAME.replace(" ", "")
-OS = get_os()
 
-
+# LINUX
 LINUX_AUTOSTART_DIR = Path.home() / ".config" / "autostart"
 LINUX_LAUNCH_FILE_PATH = Path(
     LINUX_AUTOSTART_DIR, "ControllerCompanionUIApplication.desktop"
@@ -37,7 +39,7 @@ def is_frozen() -> bool:
 
 
 def autostart_supported() -> bool:
-    return OS in [OperatingSystem.WINDOWS, OperatingSystem.LINUX]
+    return (OS in [OperatingSystem.WINDOWS, OperatingSystem.LINUX]) and is_frozen()
 
 
 def set_auto_start(enable: bool) -> bool:
@@ -108,7 +110,7 @@ def __get_reg_item(path: str, name: str) -> Any:
         return None
 
 
-def __delete_reg_item(path, name):
+def __delete_reg_item(path, name) -> bool:
     try:
         with winreg.OpenKey(
             winreg.HKEY_CURRENT_USER, path, 0, winreg.KEY_ALL_ACCESS

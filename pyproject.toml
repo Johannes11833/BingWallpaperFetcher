@@ -15,9 +15,10 @@ rich = "^13.9.4"
 
 [tool.poetry.group.dev.dependencies]
 pyinstaller = "^6.11.1"
+pillow = "^11.1.0"
 
 [tool.poetry.scripts]
-set-wallpaper = "bingwallpaper.wallpaper_fetcher:cli"
+bing-wallpaper = "bingwallpaper.wallpaper_fetcher:cli"
 
 [build-system]
 requires = ["poetry-core"]
