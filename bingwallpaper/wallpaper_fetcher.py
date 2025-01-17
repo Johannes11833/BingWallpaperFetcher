@@ -1,17 +1,25 @@
 import argparse
-from dataclasses import dataclass
 from datetime import datetime
 import json
 import logging
-from logger import log
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 import requests
 
-from wallpaper import set_wallpaper
+from bingwallpaper import VERSION
+from bingwallpaper.set_wallpaper import set_wallpaper
+from bingwallpaper.autostart import (
+    autostart_supported,
+    get_autostart_enabled,
+    set_auto_start,
+)
+from bingwallpaper.logger import log
 
 
 data_dir = Path.home() / "Documents" / "BingWallpapers"
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
+}
 
 
 class WallPaper:
@@ -59,9 +67,10 @@ def fetch_wallpaper_metadata(
     url = f"https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n={n}&mkt={locale}"
     log.debug(f"Fetching Bing wallpaper metadata from {url}")
 
-    response = requests.get(url)
-    if response.status_code == 200:
-        content = json.loads(response.content).get("images", None)
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200 and response.content:
+        content = response.json().get("images", None)
+        log.debug(f"Received Bing wallpaper metadata:\n{content}")
 
         if content:
             return [WallPaper.from_json(child) for child in content]
@@ -97,11 +106,11 @@ def download_wallpapers(
             continue
 
         if resolution:
-            url = url.replace("_1920x1080", "_" + resolution, count=1)
+            url = url.replace("_1920x1080", "_" + resolution)
 
         log.debug(f"Downloading wallpaper from {url}")
 
-        response = requests.get(url, stream=True)
+        response = requests.get(url, headers=headers)
 
         if response.status_code == 200:
             open(path, "wb").write(response.content)
@@ -142,6 +151,7 @@ def set_latest_wallpaper(
     if path:
         json_path = path.with_suffix(".json")
         walls = [WallPaper.from_json(json.loads(json_path.read_text()), path=path)]
+        log.debug(f'Found latest wallpaper locally at "{path}"')
     else:
         walls = download_wallpapers(
             n=1,
@@ -149,7 +159,7 @@ def set_latest_wallpaper(
             resolution=resolution,
         )
 
-    if path:
+    if walls and walls[0].path:
         set_wallpaper(walls[0].path)
         log.info(f"Successfully updated the wallpaper to {walls[0].pretty_print()}")
 
@@ -157,7 +167,7 @@ def set_latest_wallpaper(
 def cli():
     parser = argparse.ArgumentParser(
         prog="BingWallpaper Fetcher",
-        description="This neat little tool fetches the Bing wallpaper of the day and automatically applies it (Windows/Mac/Linux).",
+        description="This little tool fetches the Bing wallpaper of the day and automatically applies it (Windows/Mac/Linux).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -193,6 +203,37 @@ def cli():
     )
 
     parser.add_argument(
+        "-o",
+        "--output",
+        help="Output directory where the wallpapers should be saved.",
+        default=None,
+    )
+
+    if autostart_supported():
+        # only add autostart options if this is the frozen executable
+        parser.add_argument(
+            "--enable-auto",
+            help="Enable autostart.",
+            action="store_true",
+            default=False,
+        )
+
+        parser.add_argument(
+            "--disable-auto",
+            help="Remove autostart.",
+            action="store_true",
+            default=False,
+        )
+
+    parser.add_argument(
+        "-v",
+        "--version",
+        help="Prints the installed version number.",
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
         "-d",
         "--debug",
         help="Set log level to debug.",
@@ -200,16 +241,20 @@ def cli():
         default=False,
     )
 
-    parser.add_argument(
-        "-o",
-        "--output",
-        help="Output directory where the wallpapers should be saved.",
-        default=None,
-    )
     args = parser.parse_args()
+
+    if args.version:
+        print(VERSION)
+        return
 
     if args.debug:
         log.setLevel(logging.DEBUG)
+
+    if autostart_supported():
+        if args.enable_auto or args.disable_auto:
+            set_auto_start(enable=args.enable_auto)
+            print("Autostart " + ("ON" if get_autostart_enabled() else "OFF"))
+            return
 
     if args.output:
         global data_dir
