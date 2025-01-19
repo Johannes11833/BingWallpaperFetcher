@@ -1,0 +1,42 @@
+name: Publish on PyPi
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  VERSION:  ${{ github.ref_name }}
+
+permissions:
+  contents: read
+
+jobs:
+  pypi-publish:
+    name: Upload release to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/BingWallpaperFetcher/
+    permissions:
+      id-token: write
+    steps:
+      - name: Retrieve poetry version name (remove v prefix)
+        run: echo "VERSION_POETRY=${VERSION#v}" >> $GITHUB_ENV
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install Poetry
+        run: |
+            pip install poetry
+      - name: Update version and install project
+        run: |
+            poetry version "${{env.VERSION_POETRY}}"
+            poetry install --sync --no-interaction
+      - name: Package project
+        run: poetry build
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
