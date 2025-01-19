@@ -21,14 +21,12 @@ OS = get_os()
 
 # WINDOWS
 REG_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
-EXECUTABLE_PATH = f"{sys.executable}"
+EXECUTABLE_PATH = f'"{sys.executable}"'
 REG_ITEM_NAME = APP_NAME.replace(" ", "")
 
 # LINUX
 LINUX_AUTOSTART_DIR = Path.home() / ".config" / "autostart"
-LINUX_LAUNCH_FILE_PATH = Path(
-    LINUX_AUTOSTART_DIR, "BingWallpaper.desktop"
-)
+LINUX_LAUNCH_FILE_PATH = Path(LINUX_AUTOSTART_DIR, "BingWallpaper.desktop")
 
 
 def is_frozen() -> bool:
@@ -46,7 +44,7 @@ def set_auto_start(enable: bool) -> bool:
     result = False
     if OS == OperatingSystem.WINDOWS:
         if enable:
-            result = __set_reg_item(REG_PATH, REG_ITEM_NAME, f'"{EXECUTABLE_PATH}"')
+            result = __set_reg_item(REG_PATH, REG_ITEM_NAME, f"{EXECUTABLE_PATH}")
             log.debug(f"set_reg_item {REG_PATH}/{REG_ITEM_NAME}: {result}")
         else:
             result = __delete_reg_item(REG_PATH, REG_ITEM_NAME)
