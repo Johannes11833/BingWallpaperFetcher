@@ -54,10 +54,6 @@ jobs:
         & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' inno_setup.iss /DAppVersion=${{env.VERSION_POETRY}}
         ls ./dist/
 
-    - name: Build Deb File (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: ./create_deb.sh dist/controller-companion
-
     - name: Create Artifact (Windows)
       if: matrix.os == 'windows-latest'
       uses: ncipollo/release-action@v1
@@ -69,7 +65,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       uses: ncipollo/release-action@v1
       with:
-        artifacts: "dist/*.zip, dist/*.deb"
+        artifacts: "dist/*.zip"
         allowUpdates: true
 
     - name: Create Artifact (macOS)

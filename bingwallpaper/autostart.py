@@ -27,7 +27,7 @@ REG_ITEM_NAME = APP_NAME.replace(" ", "")
 # LINUX
 LINUX_AUTOSTART_DIR = Path.home() / ".config" / "autostart"
 LINUX_LAUNCH_FILE_PATH = Path(
-    LINUX_AUTOSTART_DIR, "ControllerCompanionUIApplication.desktop"
+    LINUX_AUTOSTART_DIR, "BingWallpaper.desktop"
 )
 
 
