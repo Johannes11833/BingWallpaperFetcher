@@ -1,4 +1,4 @@
-![PyPI - Version](https://img.shields.io/pypi/v/wallpaper-fetcher)
+![PyPI - Version](https://img.shields.io/pypi/v/wallpaper-fetcher?link=https%3A%2F%2Fpypi.org%2Fproject%2Fwallpaper-fetcher%2F)
 
 # Wallpaper Fetcher
 Small cli program to automatically download and set the daily Bing wallpaper on Windows, Linux or Mac.
