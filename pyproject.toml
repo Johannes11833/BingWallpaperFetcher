@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "bingwallpaper"
+name = "wallpaper_fetcher"
 version = "0.1.0"
 description = "A python script to automatically fetch and apply the daily Bing wallpaper on Linux, Mac or Windows."
 authors = [
@@ -18,7 +18,7 @@ pyinstaller = "^6.11.1"
 pillow = "^11.1.0"
 
 [tool.poetry.scripts]
-bing-wallpaper = "bingwallpaper.wallpaper_fetcher:cli"
+wallpaper-fetcher = "wallpaper_fetcher.wallpaper_fetcher:cli"
 
 [build-system]
 requires = ["poetry-core"]

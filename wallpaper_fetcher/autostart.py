@@ -3,8 +3,8 @@ from pathlib import Path
 import platform
 import sys
 from typing import Any
-from bingwallpaper import APP_NAME
-from bingwallpaper.logger import log
+from wallpaper_fetcher import APP_NAME
+from wallpaper_fetcher.logger import log
 
 
 class OperatingSystem(Enum):
@@ -26,7 +26,7 @@ REG_ITEM_NAME = APP_NAME.replace(" ", "")
 
 # LINUX
 LINUX_AUTOSTART_DIR = Path.home() / ".config" / "autostart"
-LINUX_LAUNCH_FILE_PATH = Path(LINUX_AUTOSTART_DIR, "BingWallpaper.desktop")
+LINUX_LAUNCH_FILE_PATH = Path(LINUX_AUTOSTART_DIR, "wallpaper_fetcher.desktop")
 
 
 def is_frozen() -> bool:

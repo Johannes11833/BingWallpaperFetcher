@@ -2,12 +2,12 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 #include "environment.iss"
 
-#define MyAppName "Bing Wallpaper Fetcher"
+#define MyAppName "Wallpaper Fetcher"
 #define MyAppPublisher "Johannes Gundlach"
 #define MyAppURL "https://github.com/Johannes11833/BingWallpaperFetcher"
-#define MyAppExeName "bing-wallpaper.exe"
-#define Path "dist\bing-wallpaper"
-#define OutputName "bing-wallpaper-v" + AppVersion + "-windows-setup"
+#define MyAppExeName "wallpaper-fetcher.exe"
+#define Path "dist\wallpaper-fetcher"
+#define OutputName "wallpaper-fetcher-v" + AppVersion + "-windows-setup"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
@@ -21,7 +21,7 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={autopf}\Bing Wallpaper Fetcher
+DefaultDirName={autopf}\Wallpaper Fetcher
 ; "ArchitecturesAllowed=x64compatible" specifies that Setup cannot run
 ; on anything but x64 and Windows 11 on Arm.
 ArchitecturesAllowed=x64compatible

@@ -2,7 +2,7 @@ import platform
 import shutil
 import subprocess
 
-from bingwallpaper import APP_NAME, VERSION
+from wallpaper_fetcher import APP_NAME, VERSION
 
 
 def install():
@@ -11,7 +11,7 @@ def install():
     subprocess.run(
         args=[
             "pyinstaller",
-            "./bingwallpaper/wallpaper_fetcher.py",
+            "./wallpaper_fetcher/wallpaper_fetcher.py",
             f"--name={name}",
             "--noconfirm",
             "--icon=res/app.png",

@@ -6,14 +6,14 @@ from pathlib import Path
 from typing import Dict, List, Optional
 import requests
 
-from bingwallpaper import VERSION
-from bingwallpaper.set_wallpaper import set_wallpaper
-from bingwallpaper.autostart import (
+from wallpaper_fetcher import VERSION
+from wallpaper_fetcher.set_wallpaper import set_wallpaper
+from wallpaper_fetcher.autostart import (
     autostart_supported,
     get_autostart_enabled,
     set_auto_start,
 )
-from bingwallpaper.logger import log
+from wallpaper_fetcher.logger import log
 
 
 data_dir = Path.home() / "Documents" / "BingWallpapers"
@@ -166,7 +166,7 @@ def set_latest_wallpaper(
 
 def cli():
     parser = argparse.ArgumentParser(
-        prog="BingWallpaper Fetcher",
+        prog="wallpaper_fetcher Fetcher",
         description="This little tool fetches the Bing wallpaper of the day and automatically applies it (Windows/Mac/Linux).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )

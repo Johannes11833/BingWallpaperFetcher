@@ -1,11 +1,11 @@
-# Bing Wallpaper Fetcher
+# Wallpaper Fetcher
 Small cli program to automatically download and set the daily Bing wallpaper on Windows, Linux or Mac.
 
 
 ```console
 > python .\bing.py -h  
 
-usage: BingWallpaper Fetcher [-h] [-f] [-n NUMBER] [-r RES] [-l LOCALE] [-d] [-o OUTPUT]
+usage: wallpaper_fetcher Fetcher [-h] [-f] [-n NUMBER] [-r RES] [-l LOCALE] [-d] [-o OUTPUT]
 
 This neat little tool fetches the Bing wallpaper of the day and automatically applies it (Windows/Mac/Linux).
 
