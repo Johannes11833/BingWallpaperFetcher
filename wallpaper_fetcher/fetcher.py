@@ -289,14 +289,9 @@ def cli():
         global DATA_DIR
         DATA_DIR = Path(args.output)
 
-    if args.stop or args.rotate:
-        if args.rotate:
-            log.info(
-                f"Wallpaper rotator is enabled with update_interval set to {args.update_interval}s."
-            )
-            wallpaper_rotator.launch(args.update_interval)
-        else:
-            wallpaper_rotator.stop_running_instance()
+    if args.stop:
+        if wallpaper_rotator.stop_running_instance():
+            print("Running instance stopped.")
         return
 
     walls = download_wallpapers(
@@ -305,7 +300,12 @@ def cli():
         resolution=args.res,
     )
 
-    if not args.download:
+    if args.rotate:
+        log.info(
+            f"Wallpaper rotator is enabled with update_interval set to {args.update_interval}s."
+        )
+        wallpaper_rotator.launch(args.update_interval)
+    elif not args.download:
         set_latest_wallpaper(
             wallpaper=walls[0] if walls else None,
         )

@@ -11,7 +11,8 @@ from wallpaper_fetcher.logger import log
 from wallpaper_fetcher.set_wallpaper import set_wallpaper
 
 
-def stop_running_instance():
+def stop_running_instance() -> bool:
+    success = False
     if PID_FILE.is_file():
         pid_running = int(PID_FILE.read_text())
         try:
@@ -25,12 +26,14 @@ def stop_running_instance():
                     else signal.SIGKILL
                 ),
             )
-            log.debug("Successfully stopped running instance of the wallpaper rotator.")
+            success = True
         except OSError:
             log.warning("Failed to kill running instance!")
 
-        # remove the pid file
+        # remove old pid file
         PID_FILE.unlink()
+
+        return success
 
 
 def launch(update_interval: int):
