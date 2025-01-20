@@ -6,7 +6,6 @@ on:
       - "v*"
 
 env:
-  APP_NAME: controller-companion
   VERSION:  ${{ github.ref_name }}
 
 jobs:

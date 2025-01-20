@@ -3,6 +3,7 @@ from datetime import datetime
 import json
 import logging
 from pathlib import Path
+import time
 from typing import Dict, List, Optional
 import requests
 
@@ -56,6 +57,9 @@ class WallPaper:
     def pretty_print(self) -> str:
         return f'Wallpaper(title: "{self.title}", copyright: "{self.copyright}", startdate: {self.startdate}, path: "{self.path}")'
 
+    def __repr__(self):
+        return self.pretty_print()
+
 
 def fetch_wallpaper_metadata(
     locale: str | None = None,
@@ -65,16 +69,20 @@ def fetch_wallpaper_metadata(
         locale = "en-US"
     url = f"https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n={n}&mkt={locale}"
     log.debug(f"Fetching Bing wallpaper metadata from {url}")
+    retry_counter = 1
 
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200 and response.content:
-        content = response.json().get("images", None)
-        log.debug(f"Received Bing wallpaper metadata:\n{content}")
+    while retry_counter <= 5:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200 and response.content:
+            content = response.json().get("images", None)
+            log.debug(f"Received Bing wallpaper metadata:\n{content}")
 
-        if content:
-            return [WallPaper.from_json(child) for child in content]
-        else:
-            log.error("Failed to get metadata for latest Bing wallpaper(s)!")
+            if content:
+                return [WallPaper.from_json(child) for child in content]
+
+        log.warning(f"Failed to get metadata (retry={retry_counter})")
+        time.sleep(1)
+        retry_counter += 1
 
 
 def download_wallpapers(
@@ -84,6 +92,14 @@ def download_wallpapers(
     force: bool = False,
 ) -> List[WallPaper]:
     DATA_DIR.mkdir(exist_ok=True, parents=True)
+
+    if n == 1 and not force:
+        path = get_current_wallpaper_locally(DATA_DIR=DATA_DIR)
+        if path:
+            json_path = path.with_suffix(".json")
+            walls = [WallPaper.from_json(json.loads(json_path.read_text()), path=path)]
+            log.debug(f'Found latest wallpaper locally at "{path}"')
+            return walls
 
     walls = fetch_wallpaper_metadata(locale, n=n)
     downloads = 0
@@ -95,8 +111,14 @@ def download_wallpapers(
     for wallpaper in walls:
         path = (
             DATA_DIR
-            / f"{wallpaper.startdate}_{wallpaper.title}.jpg".replace(" ", "_").lower()
-        )
+            / f"{wallpaper.startdate}_{wallpaper.title}".replace(" ", "_")
+            .replace("'", "")
+            .replace('"', "")
+            .replace("!", "")
+            .replace(".", "")
+            .replace(",", "")
+            .lower()
+        ).with_suffix(".jpg")
         url = wallpaper.url
 
         if path.is_file() and not force:
@@ -124,7 +146,8 @@ def download_wallpapers(
     if downloads > 0:
         log.info(f'Downloaded {downloads} new wallpaper(s) to "{DATA_DIR}"')
 
-    return walls
+    # drop all wallpapers that failed to download
+    return [w for w in walls if w.path]
 
 
 def get_current_wallpaper_locally(DATA_DIR: Path) -> Optional[Path]:
@@ -143,24 +166,13 @@ def get_current_wallpaper_locally(DATA_DIR: Path) -> Optional[Path]:
 
 
 def set_latest_wallpaper(
-    resolution: str | None = None,
-    locale: str | None = None,
+    wallpaper: WallPaper,
 ):
-    path = get_current_wallpaper_locally(DATA_DIR=DATA_DIR)
-    if path:
-        json_path = path.with_suffix(".json")
-        walls = [WallPaper.from_json(json.loads(json_path.read_text()), path=path)]
-        log.debug(f'Found latest wallpaper locally at "{path}"')
-    else:
-        walls = download_wallpapers(
-            n=1,
-            locale=locale,
-            resolution=resolution,
-        )
-
-    if walls and walls[0].path:
-        set_wallpaper(walls[0].path)
-        log.info(f"Successfully updated the wallpaper to {walls[0].pretty_print()}")
+    if wallpaper and wallpaper.path:
+        success = set_wallpaper(wallpaper.path)
+        log.info(f"Successfully updated the wallpaper to {wallpaper.pretty_print()}")
+        if not success:
+            log.error("Failed to set the wallpaper as background.")
 
 
 def cli():
@@ -191,6 +203,14 @@ def cli():
         help="Custom resolution. UHD by default.",
         type=str,
         default="UHD",
+    )
+
+    parser.add_argument(
+        "-d",
+        "--download",
+        help="Only download the wallpaper(s) without updating the desktop background.",
+        action="store_true",
+        default=False,
     )
 
     parser.add_argument(
@@ -233,7 +253,6 @@ def cli():
     )
 
     parser.add_argument(
-        "-d",
         "--debug",
         help="Set log level to debug.",
         action="store_true",
@@ -259,17 +278,16 @@ def cli():
         global DATA_DIR
         DATA_DIR = Path(args.output)
 
-    if args.number > 1 or args.force:
-        download_wallpapers(
-            n=args.number,
-            force=args.force,
-            resolution=args.res,
-        )
-
-    set_latest_wallpaper(
+    walls = download_wallpapers(
+        n=args.number,
+        force=args.force,
         resolution=args.res,
-        locale=args.locale,
     )
+
+    if not args.download and walls:
+        set_latest_wallpaper(
+            wallpaper=walls[0],
+        )
 
 
 if __name__ == "__main__":
