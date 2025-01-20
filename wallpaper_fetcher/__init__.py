@@ -1,7 +1,7 @@
-from importlib.metadata import version
+from importlib import metadata
 from pathlib import Path
 
 
-VERSION = f'v{version("wallpaper_fetcher")}'
+VERSION = f'v{metadata.version("wallpaper_fetcher")}'
 APP_NAME = "Wallpaper Fetcher"
-DATA_DIR = Path.home() / "Documents" / "BingWallpapers"
+DATA_DIR = Path.home() / "pictures" / "Wallpapers"

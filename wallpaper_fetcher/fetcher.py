@@ -4,7 +4,7 @@ import json
 import logging
 from pathlib import Path
 import time
-from typing import Dict, List, Optional
+from typing import List, Optional
 import requests
 
 from wallpaper_fetcher import VERSION, DATA_DIR
@@ -15,50 +15,31 @@ from wallpaper_fetcher.autostart import (
     set_auto_start,
 )
 from wallpaper_fetcher.logger import log
+from wallpaper_fetcher.wallpaper import WallPaper
 
 
-headers = {
+# list according to https://github.com/TimothyYe/bing-wallpaper
+VALID_RESOLUTIONS = [
+    "UHD",
+    "1920x1200",
+    "1920x1080",
+    "1366x768",
+    "1280x768",
+    "1024x768",
+    "800x600",
+    "800x480",
+    "768x1280",
+    "720x1280",
+    "640x480",
+    "480x800",
+    "400x240",
+    "320x240",
+    "240x320",
+]
+
+HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
 }
-
-
-class WallPaper:
-    def __init__(
-        self,
-        title: str,
-        url: str,
-        startdate: int,
-        enddate: int,
-        copyright: str,
-        raw: dict,
-        path: Path | None,
-    ):
-        self.title = title
-        self.url = url
-        self.startdate = startdate
-        self.enddate = enddate
-        self.copyright = copyright
-        self.raw = raw
-        self.path = path
-
-    @classmethod
-    def from_json(cls, content: Dict, path: Path | None = None):
-        return cls(
-            title=content["title"],
-            # content["url"] holds the rest of the url
-            url="https://bing.com" + content["url"],
-            startdate=content["startdate"],
-            enddate=content["enddate"],
-            copyright=content["copyright"],
-            raw=content,
-            path=path,
-        )
-
-    def pretty_print(self) -> str:
-        return f'Wallpaper(title: "{self.title}", copyright: "{self.copyright}", startdate: {self.startdate}, path: "{self.path}")'
-
-    def __repr__(self):
-        return self.pretty_print()
 
 
 def fetch_wallpaper_metadata(
@@ -72,7 +53,7 @@ def fetch_wallpaper_metadata(
     retry_counter = 1
 
     while retry_counter <= 5:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=HEADERS)
         if response.status_code == 200 and response.content:
             content = response.json().get("images", None)
             log.debug(f"Received Bing wallpaper metadata:\n{content}")
@@ -131,7 +112,7 @@ def download_wallpapers(
 
         log.debug(f"Downloading wallpaper from {url}")
 
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=HEADERS)
 
         if response.status_code == 200:
             open(path, "wb").write(response.content)
@@ -200,7 +181,7 @@ def cli():
     parser.add_argument(
         "-r",
         "--res",
-        help="Custom resolution. UHD by default.",
+        help="Custom resolution. UHD by default. Use --valid-res to see all valid resolutions",
         type=str,
         default="UHD",
     )
@@ -253,6 +234,13 @@ def cli():
     )
 
     parser.add_argument(
+        "--valid-res",
+        help="List all valid resolutions",
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
         "--debug",
         help="Set log level to debug.",
         action="store_true",
@@ -263,6 +251,13 @@ def cli():
 
     if args.version:
         print(VERSION)
+        return
+
+    if args.valid_res:
+        print(
+            "The following are all the valid resolution options that you can use with --res:"
+        )
+        print(", ".join(VALID_RESOLUTIONS))
         return
 
     if args.debug:
@@ -284,10 +279,12 @@ def cli():
         resolution=args.res,
     )
 
-    if not args.download and walls:
+    if not args.download:
         set_latest_wallpaper(
-            wallpaper=walls[0],
+            wallpaper=walls[0] if walls else None,
         )
+    else:
+        log.debug("Background was not updated as --download mode is active.")
 
 
 if __name__ == "__main__":
