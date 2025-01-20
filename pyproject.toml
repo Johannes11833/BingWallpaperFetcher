@@ -23,3 +23,7 @@ wallpaper-fetcher = "wallpaper_fetcher.wallpaper_fetcher:cli"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry.urls]
+repository = "https://github.com/Johannes11833/BingWallpaperFetcher"
