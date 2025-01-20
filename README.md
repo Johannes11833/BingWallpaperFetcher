@@ -3,9 +3,9 @@ Small cli program to automatically download and set the daily Bing wallpaper on 
 
 
 ```console
-> python .\bing.py -h  
+> wallpaper-fetcher -h  
 
-usage: wallpaper_fetcher Fetcher [-h] [-f] [-n NUMBER] [-r RES] [-l LOCALE] [-d] [-o OUTPUT]
+usage: Wallpaper Fetcher [-h] [-f] [-n NUMBER] [-r RES] [-l LOCALE] [-d] [-o OUTPUT]
 
 This neat little tool fetches the Bing wallpaper of the day and automatically applies it (Windows/Mac/Linux).
 
@@ -18,3 +18,6 @@ options:
   -d, --debug          Set log level to debug. (default: False)
   -o, --output OUTPUT  Output directory where the wallpapers should be saved. (default: None)
 ```
+
+## Credits
+- The source code in [set_wallpaper.py](wallpaper_fetcher/set_wallpaper.py) was copied from the [Textual Paint](https://github.com/1j01/textual-paint) project licensed under the [MIT License](https://github.com/1j01/textual-paint?tab=MIT-1-ov-file).

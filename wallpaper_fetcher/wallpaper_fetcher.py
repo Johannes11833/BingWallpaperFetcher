@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 import requests
 
-from wallpaper_fetcher import VERSION
+from wallpaper_fetcher import VERSION, DATA_DIR
 from wallpaper_fetcher.set_wallpaper import set_wallpaper
 from wallpaper_fetcher.autostart import (
     autostart_supported,
@@ -16,7 +16,6 @@ from wallpaper_fetcher.autostart import (
 from wallpaper_fetcher.logger import log
 
 
-data_dir = Path.home() / "Documents" / "BingWallpapers"
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
 }
@@ -84,7 +83,7 @@ def download_wallpapers(
     resolution: str | None = None,
     force: bool = False,
 ) -> List[WallPaper]:
-    data_dir.mkdir(exist_ok=True, parents=True)
+    DATA_DIR.mkdir(exist_ok=True, parents=True)
 
     walls = fetch_wallpaper_metadata(locale, n=n)
     downloads = 0
@@ -95,7 +94,7 @@ def download_wallpapers(
 
     for wallpaper in walls:
         path = (
-            data_dir
+            DATA_DIR
             / f"{wallpaper.startdate}_{wallpaper.title}.jpg".replace(" ", "_").lower()
         )
         url = wallpaper.url
@@ -123,16 +122,16 @@ def download_wallpapers(
             log.error(f"Failed to download {wallpaper.pretty_print()}")
 
     if downloads > 0:
-        log.info(f'Downloaded {downloads} new wallpaper(s) to "{data_dir}"')
+        log.info(f'Downloaded {downloads} new wallpaper(s) to "{DATA_DIR}"')
 
     return walls
 
 
-def get_current_wallpaper_locally(data_dir: Path) -> Optional[Path]:
-    if not data_dir.is_dir():
+def get_current_wallpaper_locally(DATA_DIR: Path) -> Optional[Path]:
+    if not DATA_DIR.is_dir():
         return False
 
-    for file in data_dir.iterdir():
+    for file in DATA_DIR.iterdir():
         if (
             file.is_file()
             and file.suffix == ".jpg"
@@ -147,7 +146,7 @@ def set_latest_wallpaper(
     resolution: str | None = None,
     locale: str | None = None,
 ):
-    path = get_current_wallpaper_locally(data_dir=data_dir)
+    path = get_current_wallpaper_locally(DATA_DIR=DATA_DIR)
     if path:
         json_path = path.with_suffix(".json")
         walls = [WallPaper.from_json(json.loads(json_path.read_text()), path=path)]
@@ -166,7 +165,7 @@ def set_latest_wallpaper(
 
 def cli():
     parser = argparse.ArgumentParser(
-        prog="wallpaper_fetcher Fetcher",
+        prog="Wallpaper Fetcher",
         description="This little tool fetches the Bing wallpaper of the day and automatically applies it (Windows/Mac/Linux).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
@@ -257,8 +256,8 @@ def cli():
             return
 
     if args.output:
-        global data_dir
-        data_dir = Path(args.output)
+        global DATA_DIR
+        DATA_DIR = Path(args.output)
 
     if args.number > 1 or args.force:
         download_wallpapers(
