@@ -3,11 +3,12 @@ from datetime import datetime
 import json
 import logging
 from pathlib import Path
+import re
 import time
 from typing import List, Optional
 import requests
 
-from wallpaper_fetcher import VERSION, DATA_DIR
+from wallpaper_fetcher import VERSION, DATA_DIR, wallpaper_rotator
 from wallpaper_fetcher.set_wallpaper import set_wallpaper
 from wallpaper_fetcher.autostart import (
     autostart_supported,
@@ -90,16 +91,10 @@ def download_wallpapers(
         return None
 
     for wallpaper in walls:
-        path = (
-            DATA_DIR
-            / f"{wallpaper.startdate}_{wallpaper.title}".replace(" ", "_")
-            .replace("'", "")
-            .replace('"', "")
-            .replace("!", "")
-            .replace(".", "")
-            .replace(",", "")
-            .lower()
-        ).with_suffix(".jpg")
+        file_name = f"{wallpaper.startdate}_{re.sub(r'[^a-zA-Z0-9 ]', '', wallpaper.title)}".replace(
+            " ", "_"
+        ).lower()
+        path = (DATA_DIR / file_name).with_suffix(".jpg")
         url = wallpaper.url
 
         if path.is_file() and not force:
@@ -165,7 +160,7 @@ def cli():
     parser.add_argument(
         "-f",
         "--force",
-        help="force re-download a already downloaded image.",
+        help="Force re-download a already downloaded image.",
         action="store_true",
         default=False,
     )
@@ -173,7 +168,7 @@ def cli():
     parser.add_argument(
         "-n",
         "--number",
-        help=f"number of latest wallpapers to download.",
+        help=f"Number of latest wallpapers to download.",
         default=1,
         type=int,
     )
@@ -226,6 +221,27 @@ def cli():
         )
 
     parser.add_argument(
+        "--rotate",
+        help="Automatically update the wallpaper every x seconds.",
+        default=False,
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--update-interval",
+        help="The interval to use to update the wallpaper.",
+        default=60,
+        type=int,
+    )
+
+    parser.add_argument(
+        "--stop",
+        help="Stop the wallpaper rotator.",
+        default=False,
+        action="store_true",
+    )
+
+    parser.add_argument(
         "-v",
         "--version",
         help="Prints the installed version number.",
@@ -272,6 +288,16 @@ def cli():
     if args.output:
         global DATA_DIR
         DATA_DIR = Path(args.output)
+
+    if args.stop or args.rotate:
+        if args.rotate:
+            log.info(
+                f"Wallpaper rotator is enabled with update_interval set to {args.update_interval}s."
+            )
+            wallpaper_rotator.launch(args.update_interval)
+        else:
+            wallpaper_rotator.stop_running_instance()
+        return
 
     walls = download_wallpapers(
         n=args.number,
