@@ -4,6 +4,8 @@ import json
 import logging
 from pathlib import Path
 import re
+import subprocess
+import sys
 import time
 from typing import List, Optional
 import requests
@@ -13,6 +15,7 @@ from wallpaper_fetcher.set_wallpaper import set_wallpaper
 from wallpaper_fetcher.autostart import (
     autostart_supported,
     get_autostart_enabled,
+    is_frozen,
     set_auto_start,
 )
 from wallpaper_fetcher.logger import log
@@ -160,7 +163,7 @@ def cli():
     parser.add_argument(
         "-f",
         "--force",
-        help="Force re-download a already downloaded image.",
+        help="Force re-download an already downloaded image",
         action="store_true",
         default=False,
     )
@@ -168,7 +171,7 @@ def cli():
     parser.add_argument(
         "-n",
         "--number",
-        help=f"Number of latest wallpapers to download.",
+        help=f"Number of latest wallpapers to download",
         default=1,
         type=int,
     )
@@ -184,7 +187,7 @@ def cli():
     parser.add_argument(
         "-d",
         "--download",
-        help="Only download the wallpaper(s) without updating the desktop background.",
+        help="Only download the wallpaper(s) without updating the desktop background",
         action="store_true",
         default=False,
     )
@@ -200,7 +203,7 @@ def cli():
     parser.add_argument(
         "-o",
         "--output",
-        help="Output directory where the wallpapers should be saved.",
+        help="Output directory where the wallpapers should be saved",
         default=None,
     )
 
@@ -208,35 +211,46 @@ def cli():
         # only add autostart options if this is the frozen executable
         parser.add_argument(
             "--enable-auto",
-            help="Enable autostart.",
+            help="Enable autostart",
             action="store_true",
             default=False,
         )
 
         parser.add_argument(
             "--disable-auto",
-            help="Remove autostart.",
+            help="Remove autostart",
             action="store_true",
             default=False,
         )
 
     parser.add_argument(
-        "--rotate",
-        help="Automatically update the wallpaper every x seconds.",
+        "-u",
+        "--update",
+        help="Automatically update the wallpaper every x seconds",
         default=False,
         action="store_true",
     )
 
     parser.add_argument(
+        "-i",
         "--update-interval",
-        help="The interval to use to update the wallpaper.",
-        default=60,
+        help="The interval in seconds to use to update the wallpaper",
+        default=60 * 5,
         type=int,
     )
 
     parser.add_argument(
+        "-a",
+        "--attached",
+        help="Run wallpaper rotation in attached mode (see all logs)",
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
+        "-s",
         "--stop",
-        help="Stop the wallpaper rotator.",
+        help="Stop the wallpaper rotator",
         default=False,
         action="store_true",
     )
@@ -244,7 +258,7 @@ def cli():
     parser.add_argument(
         "-v",
         "--version",
-        help="Prints the installed version number.",
+        help="Prints the installed version number",
         action="store_true",
         default=False,
     )
@@ -258,7 +272,7 @@ def cli():
 
     parser.add_argument(
         "--debug",
-        help="Set log level to debug.",
+        help="Set log level to debug",
         action="store_true",
         default=False,
     )
@@ -300,7 +314,26 @@ def cli():
         resolution=args.res,
     )
 
-    if args.rotate:
+    if args.update:
+        if not args.attached:
+            launch_args = sys.argv.copy()
+            if not is_frozen():
+                launch_args.insert(0, sys.executable)
+            launch_args.append("--attached")
+            log.debug(
+                f"Rerunning in detached mode with the following args: {launch_args}"
+            )
+            subprocess.Popen(
+                launch_args,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            log.info(
+                f"Wallpaper rotation was enabled with refresh interval set to {args.update_interval}s"
+            )
+            log.info(f'Use "--stop" to stop the wallpaper rotation.')
+            return
+
         log.info(
             f"Wallpaper rotator is enabled with update_interval set to {args.update_interval}s."
         )

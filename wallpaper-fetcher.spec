@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['wallpaper_fetcher\\wallpaper_fetcher.py'],
+    ['wallpaper_fetcher\\fetcher.py'],
     pathex=[],
     binaries=[],
     datas=[],

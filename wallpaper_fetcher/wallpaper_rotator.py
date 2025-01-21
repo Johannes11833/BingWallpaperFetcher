@@ -2,7 +2,6 @@ import os
 import random
 import signal
 import sys
-import threading
 import time
 
 from wallpaper_fetcher import DATA_DIR, PID_FILE
@@ -31,7 +30,7 @@ def stop_running_instance() -> bool:
             log.warning("Failed to kill running instance!")
 
         # remove old pid file
-        PID_FILE.unlink()
+        PID_FILE.unlink(missing_ok=True)
 
         return success
 
@@ -65,5 +64,5 @@ def rotate_wallpapers(update_interval: int):
                 time.sleep(update_interval)
     except KeyboardInterrupt:
         log.debug("Removing pid file on exit.")
-        PID_FILE.unlink()
+        PID_FILE.unlink(missing_ok=True)
         sys.exit()
