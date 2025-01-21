@@ -179,7 +179,7 @@ def cli():
     parser.add_argument(
         "-r",
         "--res",
-        help="Custom resolution. UHD by default. Use --valid-res to see all valid resolutions",
+        help="Custom resolution. Use --valid-res to see all valid resolutions",
         type=str,
         default="UHD",
     )
@@ -195,7 +195,7 @@ def cli():
     parser.add_argument(
         "-l",
         "--locale",
-        help="The market to use.",
+        help="The market to use",
         type=str,
         default="en-US",
     )

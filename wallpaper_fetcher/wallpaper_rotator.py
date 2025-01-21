@@ -1,6 +1,7 @@
 import os
 import random
 import signal
+import subprocess
 import sys
 import time
 
@@ -41,6 +42,9 @@ def launch(update_interval: int):
     pid_current = os.getpid()
     PID_FILE.parent.mkdir(parents=True, exist_ok=True)
     PID_FILE.write_text(str(pid_current))
+    if get_os() == OperatingSystem.WINDOWS:
+        # make pid file hidden on windows
+        subprocess.check_call(["attrib", "+H", PID_FILE.absolute()])
 
     rotate_wallpapers(update_interval)
 
