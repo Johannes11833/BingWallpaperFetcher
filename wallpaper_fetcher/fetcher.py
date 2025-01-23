@@ -141,8 +141,6 @@ def get_current_wallpaper_locally(DATA_DIR: Path) -> Optional[Path]:
         ):
             return file
 
-    return None
-
 
 def set_latest_wallpaper(
     wallpaper: WallPaper,
@@ -312,6 +310,7 @@ def cli():
         n=args.number,
         force=args.force,
         resolution=args.res,
+        locale=args.locale,
     )
 
     if args.update:
