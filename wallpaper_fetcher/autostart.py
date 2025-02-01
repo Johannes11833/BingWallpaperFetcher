@@ -2,7 +2,7 @@ from enum import Enum
 from pathlib import Path
 import platform
 import sys
-from typing import Any
+from typing import Any, Iterable, List
 from wallpaper_fetcher import APP_NAME
 from wallpaper_fetcher.logger import log
 
@@ -19,9 +19,9 @@ def get_os() -> OperatingSystem:
 
 OS = get_os()
 
+
 # WINDOWS
 REG_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
-EXECUTABLE_PATH = f'"{sys.executable}"'
 REG_ITEM_NAME = APP_NAME.replace(" ", "")
 
 # LINUX
@@ -36,15 +36,32 @@ def is_frozen() -> bool:
     return False
 
 
+def get_launch_args() -> List[str]:
+    launch_args = sys.argv.copy()
+
+    # make sure the path of the first item (either source file or standalone executable) is absolute
+    if launch_args:
+        launch_args[0] = str(Path(launch_args[0]).absolute())
+
+    # insert the path to the python executable in non-frozen mode
+    # on windows if run using poetry, the first item in argv is a cmd file
+    # so here we do not need to insert the executable either
+    if not is_frozen() and Path(launch_args[0]).suffix == ".py":
+        launch_args.insert(0, sys.executable)
+
+    return launch_args
+
+
 def autostart_supported() -> bool:
-    return (OS in [OperatingSystem.WINDOWS, OperatingSystem.LINUX]) and is_frozen()
+    return OS in [OperatingSystem.WINDOWS, OperatingSystem.LINUX]
 
 
-def set_auto_start(enable: bool) -> bool:
+def set_auto_start(enable: bool, args: Iterable[str] = ()) -> bool:
+    launch_args = " ".join(f'"{a}"' for a in args)
     result = False
     if OS == OperatingSystem.WINDOWS:
         if enable:
-            result = __set_reg_item(REG_PATH, REG_ITEM_NAME, f"{EXECUTABLE_PATH}")
+            result = __set_reg_item(REG_PATH, REG_ITEM_NAME, f"{launch_args}")
             log.debug(f"set_reg_item {REG_PATH}/{REG_ITEM_NAME}: {result}")
         else:
             result = __delete_reg_item(REG_PATH, REG_ITEM_NAME)
@@ -52,14 +69,19 @@ def set_auto_start(enable: bool) -> bool:
     elif OS == OperatingSystem.LINUX:
         if LINUX_AUTOSTART_DIR.is_dir():
             if enable:
-                desktop = f"[Desktop Entry]\nType=Application\nName={APP_NAME}\nExec={EXECUTABLE_PATH}"
+                desktop = f"[Desktop Entry]\nType=Application\nName={APP_NAME}\nExec={launch_args}"
+                log.debug(
+                    f'Writing desktop-file to "{LINUX_LAUNCH_FILE_PATH}" with content:\n {desktop}'
+                )
                 LINUX_LAUNCH_FILE_PATH.write_text(desktop)
                 result = True
             else:
                 LINUX_LAUNCH_FILE_PATH.unlink()
                 result = True
         else:
-            log.warning(f"Autostart folder {LINUX_AUTOSTART_DIR} does not exist.")
+            log.warning(
+                f"Autostart folder {LINUX_AUTOSTART_DIR} does not exist. Autostart  was not enabled."
+            )
 
     else:
         log.warning(f"Autostart not supported for {OS}.")
@@ -73,8 +95,8 @@ def get_autostart_enabled() -> bool:
         return (
             # a value is set
             result != None
-            # the file exists (it might have been moved by the user)
-            and Path(result.replace('"', "")).is_file()
+            # the executable exists (it might have been moved by the user)
+            and Path(result[1:].split('"')[0].replace('"', "")).is_file()
         )
     elif OS == OperatingSystem.LINUX:
         return LINUX_LAUNCH_FILE_PATH.is_file()

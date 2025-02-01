@@ -15,7 +15,7 @@ from wallpaper_fetcher.set_wallpaper import set_wallpaper
 from wallpaper_fetcher.autostart import (
     autostart_supported,
     get_autostart_enabled,
-    is_frozen,
+    get_launch_args,
     set_auto_start,
 )
 from wallpaper_fetcher.logger import log
@@ -205,22 +205,6 @@ def cli():
         default=None,
     )
 
-    if autostart_supported():
-        # only add autostart options if this is the frozen executable
-        parser.add_argument(
-            "--enable-auto",
-            help="Enable autostart",
-            action="store_true",
-            default=False,
-        )
-
-        parser.add_argument(
-            "--disable-auto",
-            help="Remove autostart",
-            action="store_true",
-            default=False,
-        )
-
     parser.add_argument(
         "-u",
         "--update",
@@ -261,6 +245,22 @@ def cli():
         default=False,
     )
 
+    if autostart_supported():
+        # only add autostart options if this is the frozen executable
+        parser.add_argument(
+            "--enable-auto",
+            help="Enable autostart (using the supplied arguments)",
+            action="store_true",
+            default=False,
+        )
+
+        parser.add_argument(
+            "--disable-auto",
+            help="Remove autostart",
+            action="store_true",
+            default=False,
+        )
+
     parser.add_argument(
         "--valid-res",
         help="List all valid resolutions",
@@ -293,7 +293,9 @@ def cli():
 
     if autostart_supported():
         if args.enable_auto or args.disable_auto:
-            set_auto_start(enable=args.enable_auto)
+            launch_args = get_launch_args()
+            launch_args.remove("--enable-auto")
+            set_auto_start(enable=args.enable_auto, args=launch_args)
             print("Autostart " + ("ON" if get_autostart_enabled() else "OFF"))
             return
 
@@ -304,6 +306,8 @@ def cli():
     if args.stop:
         if wallpaper_rotator.stop_running_instance():
             print("Running instance stopped.")
+        else:
+            print("No running instance found.")
         return
 
     walls = download_wallpapers(
@@ -315,9 +319,7 @@ def cli():
 
     if args.update:
         if not args.attached:
-            launch_args = sys.argv.copy()
-            if not is_frozen():
-                launch_args.insert(0, sys.executable)
+            launch_args = get_launch_args()
             launch_args.append("--attached")
             log.debug(
                 f"Rerunning in detached mode with the following args: {launch_args}"
