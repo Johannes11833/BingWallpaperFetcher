@@ -5,7 +5,6 @@ import logging
 from pathlib import Path
 import re
 import subprocess
-import sys
 import time
 from typing import List, Optional
 import requests
@@ -13,6 +12,8 @@ import requests
 from wallpaper_fetcher import VERSION, DATA_DIR, wallpaper_rotator
 from wallpaper_fetcher.set_wallpaper import set_wallpaper
 from wallpaper_fetcher.autostart import (
+    OS,
+    OperatingSystem,
     autostart_supported,
     get_autostart_enabled,
     get_launch_args,
@@ -254,6 +255,13 @@ def cli():
             default=False,
         )
 
+        if OS == OperatingSystem.WINDOWS:
+            parser.add_argument(
+                "--autostart-interval",
+                help="If set, automatically run this program every x minutes",
+                default=60,
+            )
+
         parser.add_argument(
             "--disable-auto",
             help="Remove autostart",
@@ -294,8 +302,14 @@ def cli():
     if autostart_supported():
         if args.enable_auto or args.disable_auto:
             launch_args = get_launch_args()
-            launch_args.remove("--enable-auto")
-            set_auto_start(enable=args.enable_auto, args=launch_args)
+            if "--enable-auto" in launch_args:
+                launch_args.remove("--enable-auto")
+
+            set_auto_start(
+                enable=args.enable_auto,
+                args=launch_args,
+                interval=args.autostart_interval,
+            )
             print("Autostart " + ("ON" if get_autostart_enabled() else "OFF"))
             return
 

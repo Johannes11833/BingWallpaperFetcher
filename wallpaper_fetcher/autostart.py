@@ -1,8 +1,9 @@
 from enum import Enum
 from pathlib import Path
 import platform
+import subprocess
 import sys
-from typing import Any, Iterable, List
+from typing import Iterable, List
 from wallpaper_fetcher import APP_NAME
 from wallpaper_fetcher.logger import log
 
@@ -21,8 +22,7 @@ OS = get_os()
 
 
 # WINDOWS
-REG_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
-REG_ITEM_NAME = APP_NAME.replace(" ", "")
+WINDOWS_TASK_NAME = "BingWallpaperFetcherTask"
 
 # LINUX
 LINUX_AUTOSTART_DIR = Path.home() / ".config" / "autostart"
@@ -47,7 +47,13 @@ def get_launch_args() -> List[str]:
     # on windows if run using poetry, the first item in argv is a cmd file
     # so here we do not need to insert the executable either
     if not is_frozen() and Path(launch_args[0]).suffix == ".py":
-        launch_args.insert(0, sys.executable)
+        exe = Path(sys.executable)
+        # check if pythonw is available
+        python_w = Path(exe.parent, f"{exe.stem}w{exe.suffix}")
+        if python_w.is_file():
+            launch_args.insert(0, python_w)
+        else:
+            launch_args.insert(0, exe)
 
     return launch_args
 
@@ -56,16 +62,13 @@ def autostart_supported() -> bool:
     return OS in [OperatingSystem.WINDOWS, OperatingSystem.LINUX]
 
 
-def set_auto_start(enable: bool, args: Iterable[str] = ()) -> bool:
+def set_auto_start(
+    enable: bool, args: Iterable[str] = (), interval: int | None = None
+) -> bool:
     launch_args = " ".join(f'"{a}"' for a in args)
     result = False
     if OS == OperatingSystem.WINDOWS:
-        if enable:
-            result = __set_reg_item(REG_PATH, REG_ITEM_NAME, f"{launch_args}")
-            log.debug(f"set_reg_item {REG_PATH}/{REG_ITEM_NAME}: {result}")
-        else:
-            result = __delete_reg_item(REG_PATH, REG_ITEM_NAME)
-            log.debug(f"delete_reg_item {REG_PATH}/{REG_ITEM_NAME}: {result}")
+        __manage_windows_task(launch_args, enable, interval)
     elif OS == OperatingSystem.LINUX:
         if LINUX_AUTOSTART_DIR.is_dir():
             if enable:
@@ -91,13 +94,13 @@ def set_auto_start(enable: bool, args: Iterable[str] = ()) -> bool:
 
 def get_autostart_enabled() -> bool:
     if OS == OperatingSystem.WINDOWS:
-        result: str = __get_reg_item(REG_PATH, REG_ITEM_NAME)
-        return (
-            # a value is set
-            result != None
-            # the executable exists (it might have been moved by the user)
-            and Path(result[1:].split('"')[0].replace('"', "")).is_file()
+        result = subprocess.run(
+            ["schtasks", "/Query", "/TN", WINDOWS_TASK_NAME],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
+        return result.returncode == 0
+
     elif OS == OperatingSystem.LINUX:
         return LINUX_LAUNCH_FILE_PATH.is_file()
     else:
@@ -106,37 +109,48 @@ def get_autostart_enabled() -> bool:
 
 
 # ---------------------------------- WINDOWS --------------------------------- #
-if OS == OperatingSystem.WINDOWS:
-    import winreg
 
 
-def __set_reg_item(path: str, name: str, value: str) -> bool:
-    try:
-        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, path) as registry_key:
-            winreg.SetValueEx(registry_key, name, 0, winreg.REG_SZ, value)
-            return True
-    except WindowsError:
-        return False
+def __manage_windows_task(args: str, enable: bool, interval_minutes: int | None = None):
 
+    if enable:
+        if interval_minutes is None:
+            interval_minutes = 60
 
-def __get_reg_item(path: str, name: str) -> Any:
-    try:
-        with winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER, path, 0, winreg.KEY_READ
-        ) as registry_key:
-            value, _ = winreg.QueryValueEx(registry_key, name)
-            return value
-    except WindowsError:
-        return None
+        command = [
+            "schtasks",
+            "/Create",
+            "/TN",
+            WINDOWS_TASK_NAME,
+            "/TR",
+            args,
+            "/SC",
+            "MINUTE",
+            "/MO",  # Modifier
+            str(interval_minutes),
+            "/F",
+        ]
+    elif get_autostart_enabled():
+        command = [
+            "schtasks",
+            "/Delete",
+            "/TN",
+            WINDOWS_TASK_NAME,
+            "/F",  # Force delete without asking for confirmation
+        ]
+    else:
+        return
 
+    log.debug(f"Running shell command: {' '.join(command)}")
+    result = subprocess.run(command, capture_output=True, text=True, shell=True)
 
-def __delete_reg_item(path, name) -> bool:
-    try:
-        with winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER, path, 0, winreg.KEY_ALL_ACCESS
-        ) as registry_key:
-            winreg.DeleteValue(registry_key, name)
-            return True
-    except WindowsError as e:
-        log.debug(e)
-        return False
+    # Check if it succeeded
+    if result.returncode == 0:
+        log.debug("Task config succeeded!")
+    else:
+        log.error("Task config succeeded failed!")
+        log.error(
+            f"Return Code: { result.returncode}",
+        )
+        log.error(f"STDOUT: {result.stdout}")
+        log.error(f"STDERR: {result.stderr}")
