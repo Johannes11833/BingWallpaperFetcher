@@ -258,13 +258,20 @@ def cli():
         if OS == OperatingSystem.WINDOWS:
             parser.add_argument(
                 "--autostart-interval",
-                help="If set, automatically run this program every x minutes",
-                default=60,
+                help="If set, automatically run this program every x minutes (only if --enable-auto is also set)",
+                type=int,
             )
 
         parser.add_argument(
             "--disable-auto",
             help="Remove autostart",
+            action="store_true",
+            default=False,
+        )
+
+        parser.add_argument(
+            "--check-auto",
+            help="Get autostart status",
             action="store_true",
             default=False,
         )
@@ -310,6 +317,8 @@ def cli():
                 args=launch_args,
                 interval=args.autostart_interval,
             )
+            return
+        elif args.check_auto:
             print("Autostart " + ("ON" if get_autostart_enabled() else "OFF"))
             return
 

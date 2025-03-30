@@ -1,9 +1,10 @@
 from enum import Enum
+import os
 from pathlib import Path
 import platform
 import subprocess
 import sys
-from typing import Iterable, List
+from typing import Iterable, List, Tuple
 from wallpaper_fetcher import APP_NAME
 from wallpaper_fetcher.logger import log
 
@@ -22,7 +23,8 @@ OS = get_os()
 
 
 # WINDOWS
-WINDOWS_TASK_NAME = "BingWallpaperFetcherTask"
+WINDOWS_TASK_NAME_LOGON_TRIGGER = "BingWallpaperFetcher"
+WINDOWS_TASK_NAME_MINUTES_TRIGGER = "BingWallpaperFetcher-PeriodicalTrigger"
 
 # LINUX
 LINUX_AUTOSTART_DIR = Path.home() / ".config" / "autostart"
@@ -92,14 +94,27 @@ def set_auto_start(
     return result
 
 
-def get_autostart_enabled() -> bool:
+def get_autostart_enabled(
+    windows_task: Tuple[str] = (
+        WINDOWS_TASK_NAME_LOGON_TRIGGER,
+        WINDOWS_TASK_NAME_MINUTES_TRIGGER,
+    ),
+) -> bool:
     if OS == OperatingSystem.WINDOWS:
-        result = subprocess.run(
-            ["schtasks", "/Query", "/TN", WINDOWS_TASK_NAME],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        return result.returncode == 0
+        enabled = False
+        for task_name in windows_task:
+            result = subprocess.run(
+                ["schtasks", "/Query", "/TN", task_name],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+
+            if result.returncode == 0:
+                enabled = True
+                log.debug(f"Task '{task_name}': ON")
+            else:
+                log.debug(f"Task '{task_name}': OFF")
+        return enabled
 
     elif OS == OperatingSystem.LINUX:
         return LINUX_LAUNCH_FILE_PATH.is_file()
@@ -114,43 +129,90 @@ def get_autostart_enabled() -> bool:
 def __manage_windows_task(args: str, enable: bool, interval_minutes: int | None = None):
 
     if enable:
-        if interval_minutes is None:
-            interval_minutes = 60
-
         command = [
             "schtasks",
             "/Create",
             "/TN",
-            WINDOWS_TASK_NAME,
+            WINDOWS_TASK_NAME_LOGON_TRIGGER,
             "/TR",
-            args,
+            f"{args}",
             "/SC",
-            "MINUTE",
-            "/MO",  # Modifier
-            str(interval_minutes),
+            "ONLOGON",
+            "/RU",
+            os.getlogin(),
             "/F",
         ]
-    elif get_autostart_enabled():
+
+        if interval_minutes is not None:
+            # also create a minutes trigger
+            command.extend(
+                [
+                    "&",
+                    "schtasks",
+                    "/Create",
+                    "/TN",
+                    WINDOWS_TASK_NAME_MINUTES_TRIGGER,
+                    "/TR",
+                    f"{args}",
+                    "/SC",
+                    "MINUTE",
+                    "/MO",
+                    str(interval_minutes),
+                    "/F",
+                ]
+            )
+
+    else:
         command = [
+            "&",
             "schtasks",
             "/Delete",
             "/TN",
-            WINDOWS_TASK_NAME,
-            "/F",  # Force delete without asking for confirmation
+            WINDOWS_TASK_NAME_LOGON_TRIGGER,
+            "/F",
+            "&",
+            "schtasks",
+            "/Delete",
+            "/TN",
+            WINDOWS_TASK_NAME_MINUTES_TRIGGER,
+            "/F",
         ]
-    else:
-        return
 
-    log.debug(f"Running shell command: {' '.join(command)}")
-    result = subprocess.run(command, capture_output=True, text=True, shell=True)
+        # remove leading '&'
+        command = command[1:]
 
-    # Check if it succeeded
-    if result.returncode == 0:
-        log.debug("Task config succeeded!")
-    else:
-        log.error("Task config succeeded failed!")
-        log.error(
-            f"Return Code: { result.returncode}",
+    if not __rerun_as_admin():
+        log.debug(f"Running shell command: {' '.join(command)}")
+        result = subprocess.run(command, capture_output=True, text=True, shell=True)
+
+        # Check if it succeeded
+        if result.returncode == 0:
+            log.debug("Task config succeeded!")
+        else:
+            log.error("Task config failed!")
+            log.error(
+                f"Return Code: {result.returncode}",
+            )
+
+            if result.stderr:
+                log.error(f'STDERR: "{result.stderr.strip()}"')
+
+
+def __rerun_as_admin() -> bool:
+    """Relaunch the current script with admin privileges if not already elevated"""
+    import ctypes
+
+    if ctypes.windll.shell32.IsUserAnAdmin():
+        return False  # Already admin
+
+    # Relaunch with elevated privileges
+    script = os.path.abspath(sys.argv[0])
+    params = " ".join([f'"{arg}"' for arg in sys.argv[1:]])
+    try:
+        ctypes.windll.shell32.ShellExecuteW(
+            None, "runas", sys.executable, f'"{script}" {params}', None, 1
         )
-        log.error(f"STDOUT: {result.stdout}")
-        log.error(f"STDERR: {result.stderr}")
+        return True  # Exit current instance after launching elevated
+    except Exception as e:
+        print("Failed to elevate:", e)
+        return False
