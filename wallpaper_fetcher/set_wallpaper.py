@@ -166,17 +166,21 @@ def set_wallpaper(file_loc: Path, first_run: bool = True):
         subprocess.Popen(args)
     ## KDE4 is difficult
     ## see http://blog.zx2c4.com/699 for a solution that might work
-    elif desktop_env in ["kde3", "trinity"]:
-        # From http://ubuntuforums.org/archive/index.php/t-803417.html
-        args = [
-            "dcop",
-            "kdesktop",
-            "KBackgroundIface",
-            "setWallpaper",
-            "0",
-            file_loc,
-            "6",
-        ]
+    elif desktop_env in ["kde", "trinity"]:
+        if Path("/usr/bin/plasma-apply-wallpaperimage").is_file():
+            # tested with kde plasma 6
+            args=["/usr/bin/plasma-apply-wallpaperimage", file_loc]
+        else:
+            # From http://ubuntuforums.org/archive/index.php/t-803417.html
+            args = [
+                "dcop",
+                "kdesktop",
+                "KBackgroundIface",
+                "setWallpaper",
+                "0",
+                file_loc,
+                "6",
+            ]
         subprocess.Popen(args)
     elif desktop_env == "xfce4":
         # From http://www.commandlinefu.com/commands/view/2055/change-wallpaper-for-xfce4-4.6.0
