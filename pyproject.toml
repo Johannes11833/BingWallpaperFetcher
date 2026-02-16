@@ -9,13 +9,13 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.14"
-requests = "^2.32.3"
-rich = "^13.9.4"
+python = ">=3.10,<3.15"
+requests = "^2.32.5"
+rich = "^14.3.2"
 
 [tool.poetry.group.dev.dependencies]
-pyinstaller = "^6.11.1"
-pillow = "^11.1.0"
+pyinstaller = "^6.19.0"
+pillow = "^12.1.1"
 
 [tool.poetry.scripts]
 wallpaper-fetcher = "wallpaper_fetcher.fetcher:cli"
