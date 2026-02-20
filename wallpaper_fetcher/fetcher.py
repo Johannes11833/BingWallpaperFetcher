@@ -9,7 +9,7 @@ import time
 from typing import List, Optional
 import requests
 
-from wallpaper_fetcher import VERSION, DATA_DIR, wallpaper_rotator
+from wallpaper_fetcher import VERSION, DATA_DIR, METADATA_FOLDER, wallpaper_rotator
 from wallpaper_fetcher.set_wallpaper import set_wallpaper
 from wallpaper_fetcher.autostart import (
     OS,
@@ -71,6 +71,15 @@ def fetch_wallpaper_metadata(
         retry_counter += 1
 
 
+def get_json_path(jpeg_path: Path) -> Path | None:
+    if not jpeg_path:
+        return None
+
+    path = jpeg_path.parent / METADATA_FOLDER / f"{jpeg_path.stem}.json"
+    print(path)
+    return path
+
+
 def download_wallpapers(
     n: int = 1,
     locale: str = "en-US",
@@ -78,11 +87,12 @@ def download_wallpapers(
     force: bool = False,
 ) -> List[WallPaper]:
     DATA_DIR.mkdir(exist_ok=True, parents=True)
+    (DATA_DIR / METADATA_FOLDER).mkdir(exist_ok=True, parents=True)
 
     if n == 1 and not force:
         path = get_current_wallpaper_locally(DATA_DIR=DATA_DIR)
-        if path:
-            json_path = path.with_suffix(".json")
+        json_path = get_json_path(path)
+        if path and json_path:
             walls = [WallPaper.from_json(json.loads(json_path.read_text()), path=path)]
             log.debug(f'Found latest wallpaper locally at "{path}"')
             return walls
@@ -115,7 +125,7 @@ def download_wallpapers(
 
         if response.status_code == 200:
             open(path, "wb").write(response.content)
-            path.with_suffix(".json").write_text(
+            get_json_path(path).write_text(
                 json.dumps(wallpaper.raw, indent="\t"),
             )
             wallpaper.path = path
