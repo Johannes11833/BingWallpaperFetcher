@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "wallpaper_fetcher"
-version = "0.2.4"
+version = "0.2.8"
 description = "A python script to automatically fetch and apply the daily Bing wallpaper on Linux, Mac or Windows."
 authors = [
     "Johannes Gundlach <24914225+Johannes11833@users.noreply.github.com>",
