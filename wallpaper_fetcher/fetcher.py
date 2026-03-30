@@ -76,7 +76,6 @@ def get_json_path(jpeg_path: Path) -> Path | None:
         return None
 
     path = jpeg_path.parent / METADATA_FOLDER / f"{jpeg_path.stem}.json"
-    print(path)
     return path
 
 
